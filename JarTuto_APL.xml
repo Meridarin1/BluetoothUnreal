@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--ARToolKit plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- init section is always evaluated once per architecture -->
+  <init>
+    <log text="JarTuto init"/>
+  </init>
+
+  <androidManifestUpdates>
+    <addPermission android:name="android.permission.CAMERA"/>
+    <addFeature android:name="android.hardware.camera"/>
+    <addFeature android:name="android.hardware.camera.autofocus"/>
+    <addPermission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <addPermission android:name="android.permission.BLUETOOTH"/>
+    <addFeature android:name="android.hardware.bluetooth"/>
+    <addPermission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <addPermission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    
+
+
+  </androidManifestUpdates>
+
+
+  <resourceCopies>
+    <copyFile src="$S(PluginDir)/lib/myJar.jar" dst="$S(BuildDir)/libs/myJar.jar" />
+  </resourceCopies>
+
+
+  <!-- optional additions to the GameActivity imports in GameActivity.java -->
+  <gameActivityImportAdditions>
+    <insert>
+      import android.widget.Toast;
+      import android.hardware.Camera;
+      import android.hardware.Camera.CameraInfo;
+      import android.hardware.Camera.Parameters;
+      import android.hardware.Camera.PreviewCallback;
+      import android.graphics.SurfaceTexture;
+      import android.graphics.ImageFormat;
+      import android.graphics.PixelFormat;
+      import java.util.List;
+      import java.io.IOException;
+      import android.bluetooth.BluetoothAdapter;
+      import android.bluetooth.BluetoothDevice;
+      import android.content.Intent;
+      import android.util.Log;
+      import java.lang.*;
+      import android.bluetooth.BluetoothServerSocket;
+      import android.bluetooth.BluetoothSocket;
+      import android.content.Context;
+      import android.os.Bundle;
+      import android.os.Handler;
+      import android.os.Message;
+
+      import java.io.IOException;
+      import java.io.InputStream;
+      import java.io.OutputStream;
+      import java.util.UUID;
+
+      import comPackage.TestJNI;
+
+
+    </insert>
+  </gameActivityImportAdditions>
+
+  <gameActivityClassAdditions>
+    <insert>
+
+      public native void GetJNIData(float data1, float data2, float data3);
+
+public class ConnectedThread extends Thread 
+{
+	
+    private final BluetoothSocket mmSocket;
+    private final InputStream mmInStream;
+    private final OutputStream mmOutStream;
+
+    public ConnectedThread(BluetoothSocket socket) 
+    { 
+        mmSocket = socket;
+        InputStream tmpIn = null;
+        OutputStream tmpOut = null;
+        
+        try 
+        {
+            tmpIn = socket.getInputStream();
+            tmpOut = socket.getOutputStream();
+        } 
+        
+        catch (IOException e) {}
+
+        mmInStream = tmpIn;
+        mmOutStream = tmpOut;       
+    }
+
+    public void run() 
+    { 
+        byte[] buffer1 = new byte[1024];       
+        byte byte1;
+        int i = 0, j = 0;
+        float[] f = new float[3];
+        while (true) 
+        {
+            try 
+            {                
+               byte1 = (byte)mmInStream.read();  
+              
+               if(byte1 == ' ')
+               {                  
+               String str1 = new String(buffer1, 0, i);
+                    
+               try{
+                   f[j] = Float.valueOf(str1).floatValue();
+                   j = j + 1;
+                   i = 0;
+                      
+                     if(j == 3)
+                     {
+                       GetJNIData(f[0], f[1], f[2]); 
+                       j = 0;
+                     }
+                      
+                   }catch(NumberFormatException e){}
+               }
+               else if((int)byte1 == -1){}
+               else{
+                  buffer1[i] = byte1;
+                  i++;
+               }                
+            }catch(IOException e) { break; }
+        }
+    }
+
+
+    public void write(byte[] buffer) 
+    {
+        try 
+        {
+            mmOutStream.write(buffer);           
+        } 
+        catch (IOException e) {}
+    }
+
+    public void cancel() 
+    {
+        try 
+        {
+            mmSocket.close();
+        } 
+        catch (IOException e) {}
+    }
+}
+
+
+      public void AndroidThunkJava_GetMessage() 
+      {
+        try
+        {
+          Log.debug("Java JNI Worked !");
+
+          int testJNIValue = new TestJNI().testJNI(); 
+        }
+       
+        catch (Exception e)
+        {
+          Log.debug("Failed with exception " + e.getMessage());
+        }      
+      }
+     
+      public void AndroidThunkJava_EnableBT()
+      {
+
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (!mBluetoothAdapter.isEnabled()) 
+        {
+                Log.debug("enablingDisableBT: enabling BT.");
+                Intent enableBTIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivity(enableBTIntent);
+        }
+
+        BluetoothDevice mBTDevice = mBluetoothAdapter.getRemoteDevice("98:D3:31:FB:5E:34");    
+        BluetoothSocket mmSocket = null;
+ 
+        try
+        {
+            mmSocket = mBTDevice.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+        }
+        catch(IOException e){}
+         
+        mBluetoothAdapter.cancelDiscovery();
+          
+        try
+        {
+            mmSocket.connect();
+        }
+        catch(IOException e){}
+          
+        ConnectedThread mConnectedThread = new ConnectedThread(mmSocket);
+        mConnectedThread.start(); 
+      }
+
+    </insert>
+  </gameActivityClassAdditions>
+
+  <!-- optional additions to GameActivity onCreate in GameActivity.java -->
+  <gameActivityOnCreateAdditions>
+    <insert>
+      //Toast.makeText(this,msg,Toast.LENGTH_LONG).show();
+      //AndroidThunkJava_Toast();
+    </insert>
+  </gameActivityOnCreateAdditions>
+
+
+</root>
